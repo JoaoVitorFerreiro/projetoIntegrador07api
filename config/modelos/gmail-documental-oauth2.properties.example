@@ -1,0 +1,18 @@
+# Alternativa Google SMTP OAuth2, SEM SEGREDOS. Não obtém nem renova tokens.
+rotabrasil.email.modo=SIMULADO
+rotabrasil.email.smtp.ativado=false
+rotabrasil.seguranca.ativa=true
+rotabrasil.email.smtp.host=smtp.gmail.com
+rotabrasil.email.smtp.porta=587
+rotabrasil.email.smtp.timeout-ms=10000
+rotabrasil.email.smtp.usuario=
+rotabrasil.email.smtp.remetente=
+rotabrasil.email.smtp.autenticacao=XOAUTH2
+# Preencher localmente com caminho absoluto usando barras / para o JSON protegido.
+rotabrasil.email.smtp.oauth2.token-arquivo=
+# O utilitário Google autorizado fornece access_token e expires_at em ISO-8601 UTC.
+# SMTP exige autorização/escopo https://mail.google.com/; gmail.send da Gmail API não substitui SMTP.
+# Aquisição, consentimento e renovação são EXTERNOS. Não há fallback para BASIC.
+# Não definir rotabrasil.email.smtp.senha neste arquivo.
+# Definir identificador NÃO secreto em segredos/rotabrasil.email.smtp.credencial-versao
+# ao substituir conta/credencial/consentimento; renovação normal do mesmo token não muda essa versão.

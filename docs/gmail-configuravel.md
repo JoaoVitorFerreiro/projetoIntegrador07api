@@ -1,5 +1,13 @@
 # Conta Gmail configurável para testes — V15
 
+**Conexão Google no canal DOCUMENTAL (V16):** consulte o
+[guia OAuth2 da Central](gmail-oauth-documental.md). A nova conexão compartilhada
+em Configurações é independente da conta administrativa de teste descrita aqui.
+
+Para a **Central documental ao cliente**, utilize o [inicializador protegido e o
+contrato documental](gmail-documental-homologacao.md). As propriedades e o histórico
+administrativos deste documento são independentes; não ativam a Central.
+
 ## Escopo e uso
 
 Em **Configurações → Conta para testes de e-mail**, ADMIN escolhe Gmail e salva

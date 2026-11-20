@@ -77,7 +77,8 @@ class EnvioManualHttpTest {
     @Test void simulacaoAuditavelPreservaHistoricoMesmoComMudancasPosteriores() throws Exception {
         jdbc.update("INSERT INTO envios(viagem_id,cliente_id,status,mensagem) SELECT id,cliente_id,'ENVIADO','privado' FROM viagens WHERE id=?",viagem);
         var c=conferir(null);verifyNoInteractions(transporte);
-        assertThat(c.path("snapshot").path("versao").asInt()).isEqualTo(2);
+        assertThat(c.path("snapshot").path("versao").asInt()).isEqualTo(3);
+        assertThat(c.path("snapshot").path("configuracaoSha256").asText()).matches("[a-f0-9]{64}");
         assertThat(c.path("snapshot").path("assunto").asText()).contains("Documentos de viagem");
         assertThat(c.path("snapshot").path("mensagem").asText()).contains("selecionados e conferidos manualmente");
         var r=confirmar(c.get("id").asText());assertThat(r.getStatusCode()).isEqualTo(HttpStatus.OK);

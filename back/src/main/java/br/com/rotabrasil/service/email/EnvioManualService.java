@@ -49,6 +49,9 @@ public class EnvioManualService {
     }
 
     public Conferencia conferir(Long viagemId, Conferir pedido) {
+        return prontidao.exclusivo(()->conferirExclusivo(viagemId,pedido));
+    }
+    private Conferencia conferirExclusivo(Long viagemId, Conferir pedido) {
         return tx.execute(status -> {
             coordenacao.bloquear();
             conferirAnterior(viagemId, pedido.anteriorId());
@@ -78,13 +81,18 @@ public class EnvioManualService {
             var d=previa.anexos().stream().filter(v->v.id().equals(a.id())).findFirst().orElseThrow();
             return new Arquivo(a.origem(),a.id(),a.nome(),d.tipo(),d.finalidade().name(),d.viagemIds(),a.sha256(),a.tamanho());
         }).toList();
-        return new Snapshot(2,mensagem.viagemId(),viagens.buscarViagem(mensagem.viagemId()).getNumero(),mensagem.destinatario(),arquivos,remetente.isBlank()?null:remetente,mensagem.assunto(),mensagem.texto());
+        String efetivo=prontidao.remetente(remetente);
+        return new Snapshot(3,mensagem.viagemId(),viagens.buscarViagem(mensagem.viagemId()).getNumero(),mensagem.destinatario(),arquivos,efetivo==null||efetivo.isBlank()?null:efetivo,mensagem.assunto(),mensagem.texto(),prontidao.assinatura());
     }
 
     private record Reserva(Tentativa tentativa, MensagemPreparada mensagem) {}
 
     @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.NEVER)
     public Tentativa confirmar(Long viagemId, Confirmar pedido) {
+        // A troca/desconexão não pode ocorrer entre a revalidação e o transporte.
+        return prontidao.exclusivo(()->confirmarExclusivo(viagemId,pedido));
+    }
+    private Tentativa confirmarExclusivo(Long viagemId, Confirmar pedido) {
         if (!pedido.confirmado()) throw new ConflitoRecursoException("Confirme a seleção conferida");
         Reserva reserva=tx.execute(status -> {
             coordenacao.bloquear();
@@ -115,7 +123,9 @@ public class EnvioManualService {
         String situacao; String motivo;
         try {
             var resultado=transporte.enviar(reserva.mensagem());
-            if (resultado==TransporteEmail.Resultado.ACEITO) {
+            if (resultado==TransporteEmail.Resultado.ACEITO_API) {
+                situacao="ACEITO_API";motivo="Gmail API aceitou a mensagem; isso não comprova entrega ou leitura";
+            } else if (resultado==TransporteEmail.Resultado.ACEITO) {
                 situacao=modo.equals("SIMULADO")?"SIMULADO":"ACEITO_SMTP"; motivo=modo.equals("SIMULADO")?"SIMULAÇÃO concluída; nenhum e-mail real enviado":"Servidor SMTP aceitou a mensagem; isso não comprova entrega ou leitura";
             } else if (resultado==TransporteEmail.Resultado.RECUSADO) {
                 situacao="FALHA"; motivo="Transporte recusou a tentativa; nenhum aceite confirmado";

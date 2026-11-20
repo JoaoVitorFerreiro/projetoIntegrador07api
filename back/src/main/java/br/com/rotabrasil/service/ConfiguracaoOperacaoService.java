@@ -16,6 +16,7 @@ public class ConfiguracaoOperacaoService {
     private final JdbcTemplate jdbc;private final CoordenacaoImportacaoService coordenacao;
     private final DestinoExportacaoService destinos;private final ObjectMapper json;
     private final String modo,remetenteSmtp;private final ConfiguracaoNotificacoes canal;private final ContaTesteEmailService contaTeste;
+    @Value("${rotabrasil.email.transporte:SMTP}") private String transporte="SMTP";
     public ConfiguracaoOperacaoService(JdbcTemplate jdbc,CoordenacaoImportacaoService coordenacao,DestinoExportacaoService destinos,ObjectMapper json,
             @Value("${rotabrasil.email.modo:SIMULADO}") String modo,@Value("${rotabrasil.email.smtp.remetente:}") String remetenteSmtp,ConfiguracaoNotificacoes canal,ContaTesteEmailService contaTeste){
         this.jdbc=jdbc;this.coordenacao=coordenacao;this.destinos=destinos;this.json=json;this.modo=modo;this.remetenteSmtp=remetenteSmtp;this.canal=canal;this.contaTeste=contaTeste;
@@ -33,6 +34,8 @@ public class ConfiguracaoOperacaoService {
     public Configuracao salvar(Salvar pedido){
         coordenacao.bloquear();destinos.validarNome(pedido.subpasta());
         String email=pedido.remetente()==null||pedido.remetente().isBlank()?null:pedido.remetente().trim();
+        if("GMAIL_API".equals(transporte)&&!Objects.equals(email,jdbc.queryForObject("SELECT remetente FROM configuracao_operacao WHERE id=1",String.class)))
+            throw new ConflitoRecursoException("O remetente Gmail é definido pela identidade Google validada. Use Conectar com Google; não edite o endereço manualmente.");
         if(email!=null)validarEmail(email);
         if(pedido.exportacaoAutomatica()&&!destinos.autorizada())throw new ArquivoInvalidoException("Defina a raiz autorizada externamente antes de ativar a cópia automática");
         String anterior=jdbc.queryForObject("SELECT subpasta FROM configuracao_operacao WHERE id=1",String.class);

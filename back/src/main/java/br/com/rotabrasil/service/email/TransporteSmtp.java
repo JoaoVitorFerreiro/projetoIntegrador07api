@@ -8,7 +8,7 @@ import org.springframework.mail.javamail.*;
 import org.springframework.stereotype.Component;
 
 /** Adaptador operacional independente da CLI Gmail. Não repete chamadas. */
-@Component @ConditionalOnProperty(name="rotabrasil.email.modo",havingValue="REAL")
+@Component @org.springframework.boot.autoconfigure.condition.ConditionalOnExpression("'${rotabrasil.email.modo:SIMULADO}' == 'REAL' and '${rotabrasil.email.transporte:SMTP}' == 'SMTP'")
 public class TransporteSmtp implements TransporteEmail {
     private final JavaMailSender sender;private final String remetente;
     public TransporteSmtp(@Qualifier("rotaSmtpSender") JavaMailSender sender,@Value("${rotabrasil.email.smtp.remetente}") String remetente){this.sender=sender;this.remetente=remetente;}

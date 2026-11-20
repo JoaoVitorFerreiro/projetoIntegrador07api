@@ -8,5 +8,5 @@ public interface TransporteEmail {
     }
 
     /** ACEITO não comprova entrega ou leitura. DESCONHECIDO exige avaliação humana. */
-    enum Resultado { ACEITO, RECUSADO, DESCONHECIDO }
+    enum Resultado { ACEITO, ACEITO_API, RECUSADO, DESCONHECIDO }
 }

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.*;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import java.util.Properties;
 
-@Configuration @ConditionalOnProperty(name="rotabrasil.email.modo",havingValue="REAL")
+@Configuration @org.springframework.boot.autoconfigure.condition.ConditionalOnExpression("'${rotabrasil.email.modo:SIMULADO}' == 'REAL' and '${rotabrasil.email.transporte:SMTP}' == 'SMTP'")
 public class ConfiguracaoSmtp {
     @Bean("rotaSmtpSender") JavaMailSenderImpl smtp(@Value("${rotabrasil.email.smtp.ativado:false}") boolean ativado,
             @Value("${rotabrasil.seguranca.ativa:false}") boolean seguranca,@Value("${rotabrasil.email.smtp.host:}") String host,

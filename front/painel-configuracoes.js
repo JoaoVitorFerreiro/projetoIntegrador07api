@@ -2,6 +2,7 @@ import { $,api,element,podeAdministrar } from './painel-base.js';
 import { apresentarErro } from './painel-diagnostico.js';
 import { mostrarConferenciaMensagem,pedidoConfirmacao } from './painel-confirmacao-recebimento.js';
 import { iniciarContaTeste,atualizarUltimaVerificacao } from './painel-conta-teste.js';
+import { iniciarGmail } from './painel-gmail.js';
 let salvo=null,ocupado=false,alterado=false,testeId=null;
 let faseConsulta='INICIAL';
 let contaTestePronta=false,contaTesteAlterada=false;
@@ -10,7 +11,7 @@ async function carregarDocumental(){
   const seq=++consultaDocumental;$('recarregar-documental').disabled=true;
   $('config-documental-estado').textContent='Consultando configuração documental, sem conectar a SMTP…';$('config-documental-bloqueios').replaceChildren();
   try{const d=await api('/api/envio-documental');if(seq!==consultaDocumental)return;
-    $('config-documental-estado').textContent=`Canal documental: ${d.provedor} · modo ${d.modo} · autenticação ${d.autenticacao}. ${d.confirmacaoRealDisponivel?'Prontidão local; autenticação no provedor e entrega não comprovadas.':'Confirmação real bloqueada; preparação sem envio disponível.'}`;
+    $('config-documental-estado').textContent=`Canal documental: ${d.provedor} · modo ${d.modo} · autenticação ${d.autenticacao}. ${d.confirmacaoRealDisponivel?'Prontidão local para confirmação.':'Confirmação real bloqueada; preparação sem envio disponível.'} ${d.autenticacaoVerificada?'Há aceite do transporte histórico desta configuração em '+new Date(d.autenticacaoComprovadaEm).toLocaleString('pt-BR')+'; não comprova validade futura, recebimento ou leitura.':'Aceite do transporte e entrega não comprovados.'}`;
     $('config-documental-bloqueios').replaceChildren(...d.bloqueios.map(m=>element('li',m)));
   }catch(error){if(seq===consultaDocumental)$('config-documental-estado').textContent=error.status===401||error.status===403?error.message:'Não foi possível consultar a configuração documental. Reconsulte; o estado do transporte é desconhecido.';}
   finally{if(seq===consultaDocumental)$('recarregar-documental').disabled=false;}
@@ -74,6 +75,7 @@ export function iniciarConfiguracoes(){
   document.addEventListener('sessao-expirada',controles);
   document.addEventListener('conta-teste-estado',event=>{contaTestePronta=event.detail.pronto;contaTesteAlterada=event.detail.alterado;testeId=null;controles();});
   iniciarContaTeste();
+  iniciarGmail();
    $('config-verificar-conta').addEventListener('click',event=>{event.preventDefault();$('config-documental').tabIndex=-1;$('config-documental').focus();carregarDocumental();});
    $('recarregar-documental').addEventListener('click',carregarDocumental);
   $('config-historico-testes').addEventListener('toggle',()=>{if($('config-historico-testes').open)resultados().catch(error=>apresentarErro($('config-resultados-testes'),error));});

@@ -1,0 +1,19 @@
+# Modelo SEM SEGREDOS. Copiado para config/documental.properties na homologação.
+# Dois opt-ins explícitos. Salvar remetente na interface não altera esses valores.
+rotabrasil.email.modo=SIMULADO
+rotabrasil.email.smtp.ativado=false
+rotabrasil.seguranca.ativa=true
+rotabrasil.email.smtp.host=smtp.gmail.com
+rotabrasil.email.smtp.porta=587
+rotabrasil.email.smtp.timeout-ms=10000
+# Preencher LOCALMENTE com a conta Google autorizada, sem aspas:
+rotabrasil.email.smtp.usuario=
+rotabrasil.email.smtp.remetente=
+rotabrasil.email.smtp.autenticacao=BASIC
+# BASIC: rotabrasil.email.smtp.senha vem do arquivo configtree
+# segredos/rotabrasil.email.smtp.senha. NÃO definir senha vazia aqui: ela sobrescreveria o segredo importado.
+# XOAUTH2: usar arquivo externo gerado/renovado pelo utilitário Google autorizado.
+rotabrasil.email.smtp.oauth2.token-arquivo=
+# Versão NÃO secreta: fornecida por segredos/rotabrasil.email.smtp.credencial-versao.
+# Alterar ao substituir credencial/conta/consentimento; não mudar em renovação rotineira do mesmo access token.
+# Confirmação ao motorista e teste administrativo são independentes e não são ativados aqui.

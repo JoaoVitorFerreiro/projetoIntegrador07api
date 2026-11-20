@@ -2,10 +2,11 @@
 'use strict';
 const {chromium,expect}=require('playwright/test');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
-const [url,out,trip]=process.argv.slice(2);const errors=[],checks=[];let browser,page;
+const [url,out,trip,certificado]=process.argv.slice(2);const errors=[],checks=[];let browser,page;
 async function main(){
-  if(!url?.startsWith('http://127.0.0.1:')||!trip)throw Error('Requer fixture Java local com transporte double');
-  fs.mkdirSync(out,{recursive:true});browser=await chromium.launch({channel:'chrome',headless:true});
+  if(!url?.startsWith('https://127.0.0.1:')||!trip||!certificado||process.env.ROTABRASIL_TESTE_TRANSPORTE_CONTROLADO!=='1')throw Error('Requer fixture Java HTTPS local com transporte double');
+  const crypto=require('node:crypto'),cert=new crypto.X509Certificate(fs.readFileSync(certificado)),pin=crypto.createHash('sha256').update(cert.publicKey.export({format:'der',type:'spki'})).digest('base64');
+  fs.mkdirSync(out,{recursive:true});browser=await chromium.launch({channel:'chrome',headless:true,args:['--ignore-certificate-errors-spki-list='+pin]});
   page=await browser.newPage({viewport:{width:1440,height:1000},locale:'pt-BR'});page.on('pageerror',e=>errors.push(e.message));
   const screenshot=async name=>page.screenshot({path:path.join(out,name+'.png'),fullPage:true});
   async function navegar(hash){await page.evaluate(h=>{location.hash=h;},hash);await expect(page.locator('main')).toHaveAttribute('data-pagina-atual',hash==='documentos'?'viagens':hash);}
@@ -17,7 +18,8 @@ async function main(){
   }
   await login('admin');await navegar('configuracoes');
   await expect(page.locator('#config-documental-estado')).toContainText('GMAIL',{timeout:20000});
-  await expect(page.locator('#config-documental-estado')).toContainText('não comprovadas');
+   await expect(page.locator('#config-documental-estado')).toContainText('não comprovados');
+  assert((await page.context().cookies()).some(c=>c.name==='JSESSIONID'&&c.secure&&c.httpOnly));checks.push('HTTPS com certificado sintético fixado, cookie Secure/HttpOnly, login e CSRF ativos');
   await page.locator('#config-verificar-conta').click();assert.equal(await page.locator('#config-conta-detalhes').evaluate(n=>n.open),false);
   await screenshot('configuracao-gmail-documental');checks.push('Configurações identifica Gmail documental sem promover endereço salvo a autenticação; link não abre requisitos Microsoft');
   await selecionar();await page.locator('#destinatario').fill('cliente@example.invalid');

@@ -35,7 +35,7 @@ public class CentralPendenciasService {
           FROM exportacoes e
           UNION ALL
           SELECT 'ENVIO',t.id,t.criada_em,
-            CASE WHEN t.situacao IN ('SIMULADO','ACEITO_SMTP') OR (t.situacao='FALHA' AND EXISTS(SELECT 1 FROM tentativas_email s WHERE s.anterior_id=t.id AND s.situacao IN ('SIMULADO','ACEITO_SMTP'))) THEN 'RESOLVIDO' ELSE 'PRECISA_ACAO' END,
+            CASE WHEN t.situacao IN ('SIMULADO','ACEITO_SMTP','ACEITO_API') OR (t.situacao='FALHA' AND EXISTS(SELECT 1 FROM tentativas_email s WHERE s.anterior_id=t.id AND s.situacao IN ('SIMULADO','ACEITO_SMTP','ACEITO_API'))) THEN 'RESOLVIDO' ELSE 'PRECISA_ACAO' END,
             CASE WHEN t.situacao='FALHA' THEN 'ERRO' ELSE 'ATENCAO' END FROM tentativas_email t
           UNION ALL
           SELECT 'NOTIFICACAO',n.id,n.criada_em,

@@ -1,0 +1,21 @@
+# Modelo NÃO secreto. Copiar para fora do Git; substituir os exemplos pela instalação real.
+rotabrasil.email.transporte=GMAIL_API
+rotabrasil.email.modo=SIMULADO
+rotabrasil.gmail.envio-ativado=false
+rotabrasil.gmail.client-id=SUBSTITUIR_PELO_CLIENT_ID_WEB_DO_GOOGLE
+# client-secret vem de configtree externo protegido; não inserir segredo neste modelo.
+rotabrasil.gmail.url-publica=https://homolog.example.invalid/rota
+rotabrasil.gmail.redirect-uri=https://homolog.example.invalid/rota/api/configuracoes/gmail/callback
+rotabrasil.gmail.cofre-arquivo=C:/RotaBrasilEstadoPrivado/gmail/conta.enc
+rotabrasil.gmail.chave-arquivo=C:/RotaBrasilChaves/gmail/aes256.key
+rotabrasil.seguranca.ativa=true
+server.servlet.context-path=/rota
+server.servlet.session.cookie.same-site=lax
+server.servlet.session.cookie.secure=true
+server.servlet.session.cookie.http-only=true
+server.forward-headers-strategy=none
+spring.flyway.enabled=false
+spring.jpa.hibernate.ddl-auto=validate
+spring.h2.console.enabled=false
+# Ativação futura e explicitamente autorizada: modo=REAL E gmail.envio-ativado=true.
+# Não depende de smtp.*, teste-email.gmail.* nem notificacoes.*.

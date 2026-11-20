@@ -205,6 +205,12 @@ summary { font-size:15px; color:var(--ink); font-weight:600; cursor:pointer; pad
 #campos-configuracoes>section:nth-child(1) { grid-area:conta; }
 #campos-configuracoes>section:nth-child(2) { grid-area:pasta; }
 #campos-configuracoes>section:nth-child(3) { grid-area:copia; }
+#campos-configuracoes[data-gmail-api="true"] { grid-template-areas:"pasta copia"; }
+#config-gmail { margin:24px 0; padding:20px; border:1px solid var(--line); border-radius:12px; background:var(--panel-raised); overflow-wrap:anywhere; }
+#config-gmail .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+#gmail-detalhes { display:grid; grid-template-columns:minmax(9rem,1fr) minmax(0,3fr); gap:8px 16px; }
+#gmail-detalhes dt { font-weight:600; } #gmail-detalhes dd { margin:0; }
+@media(max-width:760px) { #campos-configuracoes[data-gmail-api="true"] { grid-template-areas:"pasta" "copia"; } #gmail-detalhes { grid-template-columns:1fr; } #gmail-detalhes dd { margin-bottom:8px; } }
 .settings-grid h3 { margin-top:0; }
 .settings-grid section { padding-bottom:0; }
 #campos-configuracoes p { margin:8px 0; font-size:14px; color:var(--muted); }

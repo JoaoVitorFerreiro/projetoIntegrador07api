@@ -8,13 +8,15 @@ function atualizarConfirmacao(){const b=$('simular-envio');if(b)b.disabled=confe
 async function consultarConfiguracaoEnvio(){
   const version=++consultaConfig;configuracaoEnvio=null;atualizarConfirmacao();
   $('modo-email').textContent='Consultando configuração documental… A preparação não envia e-mail.';
+  $('prontidao-email').textContent='';
   $('bloqueios-envio').replaceChildren();$('recarregar-envio').disabled=true;
   $('configurar-envio').hidden=true;$('orientacao-envio').textContent='';
   try{
     const c=await api('/api/envio-documental');if(version!==consultaConfig)return;
     if(!['REAL','SIMULADO'].includes(c.modo)||!Array.isArray(c.bloqueios)||typeof c.confirmacaoRealDisponivel!=='boolean')throw Error('Contrato de configuração incompatível. Recompile e reinicie o JAR correspondente ao frontend.');
     configuracaoEnvio=c;
-    $('modo-email').textContent=(c.provedor==='GMAIL'?'Gmail documental · ':'')+(c.confirmacaoRealDisponivel?'Transporte REAL disponível por configuração local; autenticação, entrega e leitura não comprovadas.':'Conferência disponível sem envio. Confirmação real bloqueada:');
+    $('prontidao-email').textContent=`${c.provedor==='GMAIL_API'?'Identidade Google autorizada':'Remetente SMTP externo'} ${c.remetenteSmtpConfigurado?'presente':'ausente'} · autorização ${c.credencialDisponivel?'disponível':'indisponível'} · opt-in do transporte ${c.transporteAtivado?'ativado':'desativado'} · sessão protegida ${c.sessaoProtegida?'ativa':'inativa'}. ${c.autenticacaoVerificada?'Há aceite registrado em '+new Date(c.autenticacaoComprovadaEm).toLocaleString('pt-BR')+' para esta configuração; não comprova validade futura, recebimento ou leitura.':'Aceite do transporte e entrega ainda não comprovados.'} Esta consulta não envia mensagens.`;
+    $('modo-email').textContent=(c.provedor==='GMAIL'?'Gmail documental · ':'')+(c.confirmacaoRealDisponivel?'Transporte REAL disponível por configuração local; isso não comprova recebimento ou leitura.':'Conferência disponível sem envio. Confirmação real bloqueada:');
     $('bloqueios-envio').replaceChildren(...c.bloqueios.map(m=>element('li',m)));
     $('configurar-envio').hidden=!podeAdministrar()||!c.bloqueios.length;
     $('orientacao-envio').textContent=c.bloqueios.length?(podeAdministrar()?'Credenciais, autorização e modo REAL são provisionados externamente.':'Solicite a configuração a um ADMIN. Seu perfil não pode alterá-la.'):'';
@@ -49,13 +51,13 @@ $('form-email').addEventListener('submit',async event=>{
     check.addEventListener('change',atualizarConfirmacao);
     button.addEventListener('click',()=>{if(check.checked&&conferenciaEmail?.id===result.id)executarConfirmacao(trip,result.id);});
     const motivo=element('p',real?'Revise os dados e marque a confirmação explícita. O envio também depende da configuração documental verificada acima.':'Conferência de preparação em modo SIMULADO. Não autoriza envio real nem executa simulação. Configurar REAL exige nova conferência.');motivo.id='motivo-confirmacao';
-    target.replaceChildren(element('strong',`${real?'ENVIO REAL':'PREPARAÇÃO SEM ENVIO'} · arquivos conferidos no servidor`),element('p','Nenhum e-mail enviado nesta prévia.'),element('p',`CT-e ${result.snapshot.numero}`),element('p',`Remetente SMTP: ${result.snapshot.remetente||'não configurado — será necessário configurar e conferir novamente antes do envio real'}`),element('p',`Destinatário: ${result.snapshot.destinatario}`),element('p',`Assunto: ${result.snapshot.assunto}`),element('pre',result.snapshot.mensagem,'mensagem-confirmacao'),listaSnapshot(result.snapshot),...(compartilhada?[element('p','⚠ Fatura compartilhada: pode conter informações de outros clientes. Confira o documento integral e a autorização antes de enviar; os vínculos não autorizam envio a todos.')]:[]),label,button,motivo);target.hidden=false;
+    target.replaceChildren(element('strong',`${real?'ENVIO REAL':'PREPARAÇÃO SEM ENVIO'} · arquivos conferidos no servidor`),element('p','Nenhum e-mail enviado nesta prévia.'),element('p',`CT-e ${result.snapshot.numero}`),element('p',`Remetente do transporte selecionado: ${result.snapshot.remetente||'não configurado — será necessário configurar e conferir novamente antes do envio real'}`),element('p',`Destinatário: ${result.snapshot.destinatario}`),element('p',`Assunto: ${result.snapshot.assunto}`),element('pre',result.snapshot.mensagem,'mensagem-confirmacao'),listaSnapshot(result.snapshot),...(compartilhada?[element('p','⚠ Fatura compartilhada: pode conter informações de outros clientes. Confira o documento integral e a autorização antes de enviar; os vínculos não autorizam envio a todos.')]:[]),label,button,motivo);target.hidden=false;
   }catch(error){if(version===previa){$('motivo-previa').textContent=error.message;state.erroConferencia=error.message;}}finally{state.previaOcupada=false;$('gerar-previa').textContent='Gerar prévia →';atualizarSelecao();if(state.erroConferencia){$('motivo-previa').textContent=state.erroConferencia+' Revise a seleção e gere nova conferência.';state.erroConferencia=null;}}
 });
 export function renderizarTentativas(items){
   tentativasEmail=items;const target=$('tentativas');target.replaceChildren();if(!items.length){target.textContent='Nenhuma tentativa manual registrada.';return;}
   for(const item of items){
-    const section=element('section',null,`diag-card diag-${item.situacao==='FALHA'?'erro':item.situacao==='DESCONHECIDO'?'atencao':item.situacao==='ACEITO_SMTP'?'sucesso':'atencao'}`);
+    const section=element('section',null,`diag-card diag-${item.situacao==='FALHA'?'erro':item.situacao==='DESCONHECIDO'?'atencao':['ACEITO_SMTP','ACEITO_API'].includes(item.situacao)?'sucesso':'atencao'}`);
     section.append(element('strong'),element('p',`${new Date(item.criadaEm).toLocaleString('pt-BR')} · CT-e ${item.snapshot.numero} · ${item.snapshot.destinatario}`));
     if(item.situacao==='FALHA'||item.situacao==='DESCONHECIDO')section.append(element('p',item.motivo),element('p',item.situacao==='DESCONHECIDO'?'Confira o resultado antes de preparar um reenvio. Não há repetição automática.':'Revise a causa e confira novamente antes de preparar um reenvio.'));
     const detalhes=element('details');detalhes.append(element('summary','Ver detalhes'),element('p',`Tentativa ${item.id} · ${item.modo} · ${item.situacao}`),listaSnapshot(item.snapshot));
@@ -63,7 +65,7 @@ export function renderizarTentativas(items){
     if(item.situacao!=='FALHA'&&item.situacao!=='DESCONHECIDO')detalhes.append(element('p',item.motivo));
     if(item.anteriorId)detalhes.append(element('p',`Reenvio da tentativa ${item.anteriorId}`));
     section.append(detalhes);
-    const titulo=section.querySelector('strong');titulo.textContent=item.situacao==='FALHA'?`⛔ Falha${item.modo==='SIMULADO'?' no teste sem envio':''}`:item.situacao==='DESCONHECIDO'?`⚠ Resultado desconhecido${item.modo==='SIMULADO'?' do teste sem envio':''}`:item.modo==='SIMULADO'?'Teste sem envio':item.situacao==='ACEITO_SMTP'?'Aceito pelo provedor — entrega não comprovada':'⚠ Em processamento';
+    const titulo=section.querySelector('strong');titulo.textContent=item.situacao==='FALHA'?`⛔ Falha${item.modo==='SIMULADO'?' no teste sem envio':''}`:item.situacao==='DESCONHECIDO'?`⚠ Resultado desconhecido${item.modo==='SIMULADO'?' do teste sem envio':''}`:item.modo==='SIMULADO'?'Teste sem envio':item.situacao==='ACEITO_API'?'Aceito pela Gmail API — entrega não comprovada':item.situacao==='ACEITO_SMTP'?'Aceito pelo SMTP — entrega não comprovada':'⚠ Em processamento';
     if(item.modo==='SIMULADO'&&!['FALHA','DESCONHECIDO'].includes(item.situacao))section.className='diag-card';
     if(podeOperar()&&item.id===items.at(-1).id){const button=element('button','Preparar reenvio confirmado','button secondary');button.type='button';button.addEventListener('click',()=>{if(tentativaOcupada)return;anteriorEmail=item.id;invalidarPrevia();$('referencia-reenvio').textContent=`Reenvio deliberado. ${item.situacao==='DESCONHECIDO'?'Resultado anterior desconhecido: revise antes de prosseguir. ':''}Escolha destinatário e anexos e gere nova prévia.`;$('destinatario').focus();});section.append(button);}target.append(section);
   }

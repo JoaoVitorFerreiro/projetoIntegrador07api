@@ -1,5 +1,10 @@
 # Central de envios — correção e validação de 13/11/2026
 
+**Evolução V16:** a Central também suporta a conta compartilhada conectada por Google
+OAuth2 e Gmail API, com `ACEITO_API` distinto dos registros SMTP preservados.
+Consulte [conexão, implantação e aceite controlado](gmail-oauth-documental.md).
+O texto abaixo conserva o diagnóstico e os resultados da revisão de 13/11.
+
 **Continuação:** identificada a instância antiga na porta 8080. Consulte
 [o diagnóstico do JAR efetivamente em execução, a Central v2 e os passos exatos de início](iniciar-central-corrigida-gmail.md).
 Os resultados abaixo preservam a primeira correção e sua validação.

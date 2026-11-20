@@ -27,10 +27,22 @@ import static org.mockito.Mockito.*;
 class CentralEnviosRealHttpTest {
     static final Path TMP=temporario();
     static Path temporario(){try{return Files.createTempDirectory("central-real-sintetica-");}catch(Exception ex){throw new IllegalStateException(ex);}}
-    @DynamicPropertySource static void props(DynamicPropertyRegistry r){r.add("rotabrasil.arquivos.viagens",TMP::toString);r.add("rotabrasil.email.smtp.senha",()->"SOMENTE_FIXTURE_NUNCA_USAR");r.add("rotabrasil.seguranca.admin-usuario",()->"admin");r.add("rotabrasil.seguranca.admin-hash",()->new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(4).encode("SenhaSomenteFixture12!"));}
+    @DynamicPropertySource static void props(DynamicPropertyRegistry r){
+        prepararTls();r.add("server.ssl.enabled",()->true);r.add("server.ssl.key-store",()->TMP.resolve("tls.p12").toString());r.add("server.ssl.key-store-password",()->"SenhaTLSApenasFixture12!");
+        r.add("rotabrasil.arquivos.viagens",()->TMP.resolve("acervo").toString());r.add("rotabrasil.email.smtp.credencial-versao",()->"fixture-v1");r.add("rotabrasil.email.smtp.senha",()->"SOMENTE_FIXTURE_NUNCA_USAR");r.add("rotabrasil.seguranca.admin-usuario",()->"admin");r.add("rotabrasil.seguranca.admin-hash",()->new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(4).encode("SenhaSomenteFixture12!"));}
+    static void prepararTls(){prepararTls(TMP);}
+    static void prepararTls(Path diretorio){try{
+        if(Files.exists(diretorio.resolve("tls.p12")))return;
+        String keytool=Path.of(System.getProperty("java.home"),"bin",System.getProperty("os.name").startsWith("Windows")?"keytool.exe":"keytool").toString();
+        for(var args:List.of(List.of("-genkeypair","-alias","sintetico","-keyalg","RSA","-storetype","PKCS12","-keystore",diretorio.resolve("tls.p12").toString(),"-storepass:env","TLS_SOMENTE_FIXTURE","-keypass:env","TLS_SOMENTE_FIXTURE","-dname","CN=localhost","-ext","SAN=ip:127.0.0.1,dns:localhost","-validity","1"),
+                List.of("-exportcert","-rfc","-alias","sintetico","-keystore",diretorio.resolve("tls.p12").toString(),"-storepass:env","TLS_SOMENTE_FIXTURE","-file",diretorio.resolve("publico.cer").toString()))){
+            var cmd=new ArrayList<String>();cmd.add(keytool);cmd.addAll(args);var pb=new ProcessBuilder(cmd).redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD);pb.environment().put("TLS_SOMENTE_FIXTURE","SenhaTLSApenasFixture12!");var p=pb.start();if(p.waitFor()!=0)throw new IllegalStateException();
+        }
+    }catch(Exception ex){throw new IllegalStateException("Não foi possível preparar TLS sintético",ex);}}
     @MockitoBean TransporteSmtp transporte;
     @MockitoBean(name="rotaSmtpSender") org.springframework.mail.javamail.JavaMailSenderImpl sender;
     @Autowired MockMvc mvc; @Autowired JdbcTemplate jdbc; @Autowired ObjectMapper json;
+    @Autowired org.springframework.core.env.ConfigurableEnvironment env;
     @org.springframework.boot.test.web.server.LocalServerPort int porta;
     long viagem,documento;
     @BeforeEach void preparar()throws Exception{
@@ -50,6 +62,7 @@ class CentralEnviosRealHttpTest {
         mvc.perform(get("/api/envio-documental").with(user("operador").roles("OPERADOR"))).andExpect(status().isOk()).andExpect(jsonPath("$.confirmacaoRealDisponivel").value(true)).andExpect(jsonPath("$.provedor").value("GMAIL")).andExpect(jsonPath("$.autenticacaoVerificada").value(false));
         String id=conferir();verifyNoInteractions(transporte,sender);
         confirmar(id).andExpect(status().isOk()).andExpect(jsonPath("$.situacao").value("ACEITO_SMTP")).andExpect(jsonPath("$.motivo").value(org.hamcrest.Matchers.containsString("não comprova entrega")));
+        mvc.perform(get("/api/envio-documental").with(user("operador").roles("OPERADOR"))).andExpect(jsonPath("$.autenticacaoVerificada").value(true)).andExpect(jsonPath("$.autenticacaoComprovadaEm").isNotEmpty());
         // Recuperação funciona mesmo que a configuração tenha sido alterada após a tentativa.
         jdbc.update("UPDATE configuracao_operacao SET remetente=NULL WHERE id=1");
         confirmar(id).andExpect(status().isOk());verify(transporte,times(1)).enviar(any());verifyNoInteractions(sender);
@@ -59,6 +72,15 @@ class CentralEnviosRealHttpTest {
         mvc.perform(get("/api/envio-documental").with(user("leitor").roles("CONSULTA"))).andExpect(status().isOk()).andExpect(jsonPath("$.confirmacaoRealDisponivel").value(false)).andExpect(jsonPath("$.bloqueios[0]").value(org.hamcrest.Matchers.containsString("difere")));
         confirmar(conferir()).andExpect(status().isConflict());
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM tentativas_email",Integer.class)).isZero();verifyNoInteractions(transporte,sender);
+    }
+    @Test void trocaDaConfiguracaoExternaExigeNovaConferenciaMasPreservaHistorico()throws Exception{
+        String id=conferir();var fonte=new org.springframework.core.env.MapPropertySource("troca-documental-fixture",new HashMap<>(Map.of("rotabrasil.email.smtp.credencial-versao","autorizacao-sintetica-nova")));
+        env.getPropertySources().addFirst(fonte);
+        try {confirmar(id).andExpect(status().isConflict());verifyNoInteractions(transporte,sender);
+            String nova=conferir();confirmar(nova).andExpect(status().isOk());
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM tentativas_email",Integer.class)).isEqualTo(1);
+        } finally {env.getPropertySources().remove(fonte.getName());}
+        mvc.perform(get("/api/envio-documental").with(user("operador").roles("OPERADOR"))).andExpect(jsonPath("$.autenticacaoVerificada").value(false));
     }
     @Test void sessaoPapeisECsrf()throws Exception{
         mvc.perform(get("/api/envio-documental")).andExpect(status().isUnauthorized());
@@ -85,7 +107,8 @@ class CentralEnviosRealHttpTest {
         Path script=Path.of("../scripts/testar-central-envios-real.cjs").toAbsolutePath().normalize();
         Path saida=Path.of(System.getProperty("rotabrasil.browser.output",System.getProperty("java.io.tmpdir")+"/central-envios-browser"));
         Files.createDirectories(saida);
-        var p=new ProcessBuilder("node",script.toString(),"http://127.0.0.1:"+porta,saida.toString(),String.valueOf(viagem)).redirectErrorStream(true).redirectOutput(saida.resolve("playwright.log").toFile()).start();
+        var pb=new ProcessBuilder("node",script.toString(),"https://127.0.0.1:"+porta,saida.toString(),String.valueOf(viagem),TMP.resolve("publico.cer").toString()).redirectErrorStream(true).redirectOutput(saida.resolve("playwright.log").toFile());
+        pb.environment().put("NODE_EXTRA_CA_CERTS",TMP.resolve("publico.cer").toString());pb.environment().put("ROTABRASIL_TESTE_TRANSPORTE_CONTROLADO","1");var p=pb.start();
         try {assertThat(p.waitFor(180,java.util.concurrent.TimeUnit.SECONDS)).isTrue();assertThat(p.exitValue()).isZero();}
         finally {if(p.isAlive())p.destroyForcibly();}
         verify(transporte,times(2)).enviar(any());verifyNoInteractions(sender);

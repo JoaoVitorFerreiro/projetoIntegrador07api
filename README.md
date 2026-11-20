@@ -8,7 +8,7 @@ de envio de e-mail. O código do frontend fica em **`front/`** e o backend Java,
 configurações e testes em **`back/`**. O Maven reúne os dois na mesma aplicação
 Spring Boot, mantendo a comunicação com a API, login e sessão na mesma origem HTTP.
 
-**Estado documentado:** novembro de 2026 · Java 25 · Spring Boot 3.5.6 · código requer esquema de banco **V15**.
+**Estado documentado:** novembro de 2026 · Java 25 · Spring Boot 3.5.6 · código requer esquema de banco **V16**.
 O modo padrão de e-mail é **SIMULADO**. O adaptador SMTP real existe no código e depende
 de ativação/configuração explícitas e homologação operacional.
 
@@ -65,6 +65,50 @@ consulte este README e os contratos de uso compartilhado e da Etapa E-mail.
 - [Documentação complementar](#documentação-complementar)
 
 ## Atualizações da versão atual
+
+### Homologação OAuth protegida — 16/11/2026
+
+Corrigido o bloqueio entre sessão de demonstração e OAuth: a UI explica que Google
+exige login protegido e distingue configuração ausente de sessão expirada.
+O inicializador protegido existente agora suporta `-Transporte GMAIL_API`, contexto
+`/rota`, SameSite=Lax, geração explícita de acesso ADMIN aleatório em arquivo privado
+e início em segundo plano. Homologação sintética preparada em
+**https://localhost:8445/rota/login**, com credenciais Google ainda ausentes e modo
+SIMULADO. **456 JUnit, 455 aprovados, 1 ignorado, zero falhas/erros**; JAR iniciado
+pelo PowerShell e login/CSRF/diagnóstico validados sem Google ou envio externo.
+[Comando completo, senha local, redirect URI e requisitos externos](docs/gmail-oauth-documental.md#homologação-protegida-pronta--correção-de-16112026).
+
+### Conexão Google OAuth2 na Central documental — V16
+
+Configurações possui conexão compartilhada Google por ADMIN, com Authorization Code,
+PKCE S256, state de uso único vinculado à sessão e identidade verificada. O transporte
+Gmail API utiliza `gmail.send`, mantém conferência/confirmação manual e registra
+`ACEITO_API` separadamente dos históricos SMTP. Tokens ficam em cofre externo
+AES-256-GCM com chave externa separada; conexão não ativa o modo REAL.
+
+**Instalação e Google Cloud:** [guia OAuth documental](docs/gmail-oauth-documental.md).
+É necessário selecionar externamente `rotabrasil.email.transporte=GMAIL_API`.
+SMTP manual continua como transporte avançado separado, sem fallback. O teste Gmail
+administrativo e a confirmação opcional ao motorista continuam independentes.
+V16 amplia apenas o CHECK de situação documental. Não migrar banco operacional sem
+autorização específica e backup verificado; migrações automáticas permanecem desligadas
+em operação. Integração validada com servidor controlado; homologação Google real e
+recebimento dependem de futura etapa especificamente autorizada.
+
+Aceite local: **452 testes JUnit, 451 aprovados, 1 ignorado por symlink no Windows,
+zero falhas/erros**, incluindo os dois roteiros HTTPS de navegador com transportes
+controlados. Temas, desktop/celular, teclado e capturas fictícias estão no guia.
+
+### Homologação Gmail documental protegida
+
+Novo inicializador PowerShell separado da demonstração: banco V15 novo preparado
+offline, diretórios isolados, ACL, TLS local, login ADMIN por BCrypt externo e CSRF.
+Credenciais carregadas por configtree fora do repositório; ativação REAL exige opt-ins
+e comando explícitos. Conferências agora vinculam a configuração/autorização SMTP
+sem guardar segredos; snapshot 3 preserva leitura dos históricos anteriores.
+**422 JUnit, 421 aprovados, 1 ignorado, zero falhas/erros**, navegador HTTPS com double
+e JAR iniciado pelo PowerShell em preparação REAL sem chamada SMTP. Gmail externo
+continua não homologado. [Comandos completos, modelos e tentativa futura autorizada](docs/gmail-documental-homologacao.md).
 
 ### Central de envios — preparação independente do SMTP — 13/11/2026
 

@@ -110,8 +110,8 @@ public class DiagnosticoOperacaoService {
                 "Os documentos estão preservados no sistema. Não é necessário importar novamente. Itens concluídos: "+concluidos+"; pendentes: "+problemas.size()+". Cópias anteriores não são sobrescritas. Nenhum envio de e-mail é autorizado por esta recuperação.",problemas,acoes,resolucao,recuperacoes);
     }
     private DiagnosticoOperacao envio(String id){
-        var r=linha("tentativas_email",id);String situacao=(String)r.get("SITUACAO");boolean ok=Set.of("SIMULADO","ACEITO_SMTP").contains(situacao),incerto=situacao.equals("DESCONHECIDO");
-        var sucessoras=jdbc.queryForList("SELECT id,concluida_em FROM tentativas_email WHERE anterior_id=? AND situacao IN ('SIMULADO','ACEITO_SMTP') ORDER BY criada_em DESC LIMIT 1",id);
+        var r=linha("tentativas_email",id);String situacao=(String)r.get("SITUACAO");boolean ok=Set.of("SIMULADO","ACEITO_SMTP","ACEITO_API").contains(situacao),incerto=situacao.equals("DESCONHECIDO");
+        var sucessoras=jdbc.queryForList("SELECT id,concluida_em FROM tentativas_email WHERE anterior_id=? AND situacao IN ('SIMULADO','ACEITO_SMTP','ACEITO_API') ORDER BY criada_em DESC LIMIT 1",id);
         Resolucao resolucao=ok?new Resolucao(id,(OffsetDateTime)r.get("CONCLUIDA_EM"),"Resultado conhecido do transporte; aceite não comprova entrega."):!incerto&&!sucessoras.isEmpty()?new Resolucao((String)sucessoras.getFirst().get("ID"),(OffsetDateTime)sucessoras.getFirst().get("CONCLUIDA_EM"),"Reenvio explicitamente vinculado com resultado conhecido; a falha original foi preservada."):null;
         return new DiagnosticoOperacao(id,(String)r.get("CORRELACAO"),(OffsetDateTime)r.get("CRIADA_EM"),VERSAO,"ENVIO",null,null,"TRANSPORTE_EMAIL",incerto?"ENVIO_DESCONHECIDO":ok?"ENVIO_RESULTADO_CONHECIDO":"ENVIO_RECUSADO",resolucao!=null?"SUCESSO":incerto?"ATENCAO":"ERRO",
                 incerto?"Resultado do envio desconhecido. Consulte a tentativa antes de confirmar um reenvio.":ok?"Resultado do transporte registrado; não equivale a entrega.":"Falha na tentativa de envio.",CAUSA_DESCONHECIDA,
